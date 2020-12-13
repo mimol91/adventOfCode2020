@@ -9,7 +9,6 @@ import (
 func main() {
 	fmt.Printf("Part1 %d\n", part1())
 	fmt.Printf("Part2 %d\n", part2())
-
 }
 
 func part1() int {
