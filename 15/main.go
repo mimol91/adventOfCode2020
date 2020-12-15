@@ -12,15 +12,6 @@ func main() {
 	fmt.Printf("Part2 %d\n", part2())
 }
 
-type Tuple struct {
-	A, B int
-}
-
-func (r Tuple) Diff() int { return r.B - r.A }
-func (r *Tuple) Store(val int) {
-	r.A = r.B
-	r.B = val
-}
 func part1() int {
 	return execute(2020)
 }
@@ -32,29 +23,27 @@ func part2() int {
 func execute(maxIterations int) int {
 	text := readInput()
 	startingNumbers := parse(text)
-	occurrencesMap := make(map[int]*Tuple)
+	occurrencesMap := make([]int, maxIterations)
 
 	for i, val := range startingNumbers {
-		occurrencesMap[val] = &Tuple{B: i + 1}
+		occurrencesMap[val] = i+1
 	}
 
-	lastNum := startingNumbers[len(startingNumbers)-1]
-	isNew := true
-	for i := 1 + len(occurrencesMap); i <= maxIterations; i++ {
-		if isNew {
-			lastNum = 0
+	lastSpoken := startingNumbers[len(startingNumbers)-1]
+	var val int
+	for i :=  len(startingNumbers); i < maxIterations; i++ {
+		val = occurrencesMap[lastSpoken]
+		if val == 0 {
+			occurrencesMap[lastSpoken] = i
+			lastSpoken = 0
 		} else {
-			lastNum = occurrencesMap[lastNum].Diff()
+			tmp := lastSpoken
+			lastSpoken = i - val
+			occurrencesMap[tmp] = i
 		}
-		_, ok := occurrencesMap[lastNum]
-		if !ok {
-			occurrencesMap[lastNum] = &Tuple{}
-		}
-		isNew = !ok
-		occurrencesMap[lastNum].Store(i)
 	}
 
-	return lastNum
+	return lastSpoken
 }
 
 func parse(text string) []int {
