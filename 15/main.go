@@ -26,12 +26,12 @@ func execute(maxIterations int) int {
 	occurrencesMap := make([]int, maxIterations)
 
 	for i, val := range startingNumbers {
-		occurrencesMap[val] = i+1
+		occurrencesMap[val] = i + 1
 	}
 
 	lastSpoken := startingNumbers[len(startingNumbers)-1]
 	var val int
-	for i :=  len(startingNumbers); i < maxIterations; i++ {
+	for i := len(startingNumbers); i < maxIterations; i++ {
 		val = occurrencesMap[lastSpoken]
 		if val == 0 {
 			occurrencesMap[lastSpoken] = i
