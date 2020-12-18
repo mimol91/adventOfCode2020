@@ -7,9 +7,10 @@ import (
 	"strings"
 )
 
+// TODO it's bad approach :/
 func main() {
 	fmt.Printf("Part1 %d\n", part1())
-	//fmt.Printf("Part2 %d\n", part2())
+	fmt.Printf("Part2 %d\n", part2())
 }
 
 type Operator rune
@@ -50,27 +51,39 @@ func Calc(text string) int {
 	return calc.Result()
 }
 
-func ParseLine(text string) int {
+func Calc2(text string) int {
+	result := 1
+	parts := strings.Split(text, " ")
+	for i := len(parts) - 1; i >= 0; i-- {
+		if parts[i] == "+" {
+			sum := atoi(parts[i-1]) + atoi(parts[i+1])
+			start := parts[:i-1]
+			end := parts[i+2:]
+			parts = append(start, strconv.Itoa(sum))
+			parts = append(parts, end...)
+			i -= 1
+		}
+	}
+	for _, el := range parts {
+		if el != "*" {
+			result *= atoi(el)
+		}
+	}
+	return result
+}
+
+func ParseLine(text string, calcFn func(string) int) int {
 	for {
 		openB, closeB := getBrackets(text)
 		if closeB == 0 {
 			break
 		}
 		inner := text[openB+1 : closeB]
-		text = text[0:openB] + strconv.Itoa(Calc(inner)) + text[closeB+1:]
+		text = text[0:openB] + strconv.Itoa(calcFn(inner)) + text[closeB+1:]
 	}
-	return Calc(text)
+	return calcFn(text)
 }
 
-func part1() int {
-	var result int
-	text := readInput()
-	for _, line := range strings.Split(text, "\n") {
-		result += ParseLine(line)
-	}
-
-	return result
-}
 func getBrackets(text string) (int, int) {
 	closingBrackets := len(text)
 	openingBrackets := 0
@@ -92,9 +105,24 @@ func getBrackets(text string) (int, int) {
 	return openingBrackets, closingBrackets
 }
 
-func part2() int {
+func part1() int {
+	var result int
+	text := readInput()
+	for _, line := range strings.Split(text, "\n") {
+		result += ParseLine(line, Calc)
+	}
 
-	return 0
+	return result
+}
+
+func part2() int {
+	var result int
+	text := readInput()
+	for _, line := range strings.Split(text, "\n") {
+		result += ParseLine(line, Calc2)
+	}
+
+	return result
 }
 
 func atoi(val string) int {
