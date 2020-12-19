@@ -7,13 +7,12 @@ import (
 	"strings"
 )
 
-type SearchMap map[int]map[int]struct{} //Key Rule=> Val list of other rules depends on
 type Rules struct {
 	Rules       []Rule
 	SearchMap   SearchMap
 	SolvedRules map[int]struct{}
 }
-
+type SearchMap map[int]map[int]struct{} //Key Rule=> Val list of other rules depends on
 type Element struct {
 	RulesNr []int
 	Solved  bool
@@ -51,11 +50,8 @@ func (r Rules) Print() {
 }
 
 func (r *Rules) Solve() {
-	var i int
 	for len(r.SolvedRules) != len(r.Rules) {
-		i++
-		fmt.Println(fmt.Sprintf("-- %d --", i))
-		r.Print()
+
 		for ruleNr := range r.SolvedRules {
 			dependRulesNr := r.SearchMap[ruleNr]
 			if len(dependRulesNr) == 0 {
@@ -63,16 +59,26 @@ func (r *Rules) Solve() {
 			}
 
 			for dependedRuleNr := range dependRulesNr {
-				rule := r.Rules[dependedRuleNr]
-				for _, el := range rule.Elements {
+				//rule := r.Rules[dependedRuleNr]
+				if r.Rules[dependedRuleNr].IsSolved() {
+					continue
+				}
+
+				for i := len(r.Rules[dependedRuleNr].Elements) - 1; i >= 0; i-- {
+					el := r.Rules[dependedRuleNr].Elements[i]
+					if el.Solved {
+						continue
+					}
 					firstRuleNr := el.RulesNr[0]
 					if firstRuleNr != ruleNr {
 						continue
 					}
-
 					rulesLen := len(el.RulesNr)
 					solvedRule := r.Rules[firstRuleNr]
-					r.Rules[dependedRuleNr].Elements = r.Rules[dependedRuleNr].Elements[1:] //remove 1st
+
+					//Remove processing element
+					r.Rules[dependedRuleNr].Elements = append(r.Rules[dependedRuleNr].Elements[:i], r.Rules[dependedRuleNr].Elements[i+1:]...)
+					i++
 					for _, solvedEl := range solvedRule.Elements {
 						element := Element{
 							Solved: rulesLen == 1,
@@ -81,11 +87,13 @@ func (r *Rules) Solve() {
 						if !element.Solved {
 							element.RulesNr = el.RulesNr[1:]
 						}
+						i--
 						r.Rules[dependedRuleNr].Elements = append(r.Rules[dependedRuleNr].Elements, element)
 					}
 					if r.Rules[dependedRuleNr].IsSolved() {
 						r.SolvedRules[dependedRuleNr] = struct{}{}
 					}
+
 				}
 			}
 		}
@@ -97,12 +105,26 @@ func main() {
 	//fmt.Printf("Part2 %d\n", part2())
 }
 
-func part1() int {
-	text := readInput()
-	rules := parse(text)
+//2097152
+//2086841
 
+func part1() int {
+	var result int
+	text := readInput()
+	rules, messages := parse(text)
 	rules.Solve()
-	return 0
+	possibleVals := make(map[string]struct{}, len(rules.Rules[0].Elements))
+
+	for _, elements := range rules.Rules[0].Elements {
+		possibleVals[elements.Value] = struct{}{}
+	}
+	for _, message := range messages {
+		if _, ok := possibleVals[message]; ok {
+			result++
+		}
+	}
+
+	return result
 }
 
 func part2() int {
@@ -110,7 +132,14 @@ func part2() int {
 	return 0
 }
 
-func parse(text string) Rules {
+func parse(text string) (Rules, []string) {
+	parts := strings.Split(text, "\n\n")
+	rules := parseRules(parts[0])
+	messages := strings.Split(parts[1], "\n")
+
+	return rules, messages
+}
+func parseRules(text string) Rules {
 	rules := Rules{
 		SearchMap:   make(SearchMap),
 		SolvedRules: make(map[int]struct{}),
@@ -127,7 +156,7 @@ func parse(text string) Rules {
 			result[ruleID] = Rule{
 				Elements: []Element{{
 					Solved: true,
-					Value:  parts[1][2:3], //@todo
+					Value:  parts[1][2:3],
 				}},
 			}
 			rules.SolvedRules[ruleID] = struct{}{}
