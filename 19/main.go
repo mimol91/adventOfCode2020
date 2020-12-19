@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"io/ioutil"
+	"regexp"
 	"strconv"
 	"strings"
 )
@@ -18,8 +19,18 @@ type Element struct {
 	Solved  bool
 	Value   string
 }
+type Elements []Element
+
+func (e Elements) Values() []string {
+	result := make([]string, len(e))
+	for i, el := range e {
+		result[i] = el.Value
+	}
+	return result
+}
+
 type Rule struct {
-	Elements []Element
+	Elements Elements
 }
 
 func (r Rule) IsSolved() bool {
@@ -29,24 +40,6 @@ func (r Rule) IsSolved() bool {
 		}
 	}
 	return true
-}
-
-func (r Rules) Print() {
-	var sb strings.Builder
-	for id, rule := range r.Rules {
-		sb.WriteString(fmt.Sprintf("%d:", id))
-
-		rulesText := make([]string, 0)
-		for _, e := range rule.Elements {
-
-			rulesText = append(rulesText, fmt.Sprintf("%s %d", e.Value, e.RulesNr))
-		}
-
-		sb.WriteString(strings.Join(rulesText, " | "))
-		sb.WriteString("\n")
-	}
-	sb.WriteString("\n")
-	fmt.Println(sb.String())
 }
 
 func (r *Rules) Solve() {
@@ -102,11 +95,8 @@ func (r *Rules) Solve() {
 
 func main() {
 	fmt.Printf("Part1 %d\n", part1())
-	//fmt.Printf("Part2 %d\n", part2())
+	fmt.Printf("Part2 %d\n", part2())
 }
-
-//2097152
-//2086841
 
 func part1() int {
 	var result int
@@ -118,6 +108,7 @@ func part1() int {
 	for _, elements := range rules.Rules[0].Elements {
 		possibleVals[elements.Value] = struct{}{}
 	}
+
 	for _, message := range messages {
 		if _, ok := possibleVals[message]; ok {
 			result++
@@ -128,8 +119,35 @@ func part1() int {
 }
 
 func part2() int {
+	var result int
+	text := readInput()
+	rules, messages := parse(text)
+	rules.Solve()
 
-	return 0
+	part31 := fmt.Sprintf("(%s)", strings.Join(rules.Rules[31].Elements.Values(), "|"))
+	part42 := fmt.Sprintf("(%s)", strings.Join(rules.Rules[42].Elements.Values(), "|"))
+
+	// Rule 8 -> one or more times rule 42
+	rule8String := fmt.Sprintf("(%s)+", part42)
+
+
+	makeRegexp := func(num int) *regexp.Regexp {
+		// rule 11:  equal number of 42 and 31 rules
+		pattern := fmt.Sprintf("^%s%s{%d}%s{%d}$", rule8String, part42, num, part31, num)
+		return regexp.MustCompile(pattern)
+	}
+
+	for _, m := range messages {
+		for i := 1; i < 10; i++ {
+			pattern := makeRegexp(i)
+			if pattern.MatchString(m) {
+				result++
+				break
+			}
+		}
+	}
+
+	return result
 }
 
 func parse(text string) (Rules, []string) {
