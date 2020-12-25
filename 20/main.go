@@ -4,12 +4,15 @@ import (
 	"bytes"
 	"fmt"
 	"io/ioutil"
+	"math"
 	"strings"
 )
 
+const TileSize = 10
+
 func main() {
-	fmt.Printf("Part1 %d\n", part1())
-	//fmt.Printf("Part2 %d\n", part2())
+	//fmt.Printf("Part1 %d\n", part1())
+	fmt.Printf("Part2 %d\n", part2())
 }
 
 type Q []*Tile
@@ -25,10 +28,16 @@ func (r *Q) Pop() *Tile {
 	return el
 }
 
+type Board struct {
+	Size    int
+	Data    Grid
+	Monster Grid
+}
 type Tiles []*Tile
+type Grid [][]byte
 type Tile struct {
 	ID                       int
-	Data                     [][]byte
+	Data                     Grid
 	Top, Bottom, Left, Right *Tile
 }
 
@@ -40,43 +49,65 @@ func (r Tile) Print() {
 	}
 	fmt.Println(string(result))
 }
-func (r Tile) FlipX() *Tile {
-	data := make([][]byte, len(r.Data))
-	for i, row := range r.Data {
-		data[i] = reverse(row)
+func (r Grid) FlipX() Grid {
+	result := make([][]byte, len(r))
+	for i, row := range r {
+		result[i] = reverse(row)
 	}
-	return &Tile{ID: r.ID, Data: data, Top: r.Top, Bottom: r.Bottom, Left: r.Right, Right: r.Left}
+	return result
 }
-func (r Tile) FlipY() *Tile {
-	rows := len(r.Data)
-	data := make([][]byte, rows)
-	for i, row := range r.Data {
-		data[rows-i-1] = row
+func (r Grid) FlipY() Grid {
+	rows := len(r)
+	result := make([][]byte, len(r))
+	for i, row := range r {
+		result[rows-i-1] = row
 	}
-	return &Tile{ID: r.ID, Data: data, Left: r.Left, Right: r.Right, Top: r.Bottom, Bottom: r.Top}
+	return result
 }
-func (r Tile) FlipXY() *Tile {
-	rows := len(r.Data)
-	data := make([][]byte, rows)
-	for i, row := range r.Data {
-		data[rows-i-1] = reverse(row)
+func (r Grid) FlipXY() Grid {
+	rows := len(r)
+	result := make([][]byte, len(r))
+	for i, row := range r {
+		result[rows-i-1] = reverse(row)
 	}
-	return &Tile{ID: r.ID, Data: data, Top: r.Bottom, Bottom: r.Top, Left: r.Right, Right: r.Left}
+	return result
 }
-func (r Tile) Rotate() *Tile {
-	rows := len(r.Data)
-	data := make([][]byte, rows)
-
+func (r Grid) Rotate() Grid {
+	rows := len(r)
+	result := make([][]byte, len(r))
 	for i := 0; i < rows; i++ {
-		data[i] = make([]byte, rows)
+		result[i] = make([]byte, rows)
 		for j := 0; j < rows; j++ {
-			data[i][j] = r.Data[rows-j-1][i]
+			result[i][j] = r[rows-j-1][i]
 		}
 	}
-	return &Tile{ID: r.ID, Data: data, Right: r.Top, Bottom: r.Right, Left: r.Bottom, Top: r.Left}
+	return result
 }
 
-func (r Tile) Flips() [3]*Tile { return [3]*Tile{r.FlipX(), r.FlipY(), r.FlipXY()} }
+func (r Grid) Count(i byte) int {
+	result := 0
+	for _, col := range r {
+		for _, el := range col {
+			if el == i {
+				result++
+			}
+		}
+	}
+
+	return result
+}
+func (r Tile) FlipX() *Tile {
+	return &Tile{ID: r.ID, Data: r.Data.FlipX(), Top: r.Top, Bottom: r.Bottom, Left: r.Right, Right: r.Left}
+}
+func (r Tile) FlipY() *Tile {
+	return &Tile{ID: r.ID, Data: r.Data.FlipY(), Left: r.Left, Right: r.Right, Top: r.Bottom, Bottom: r.Top}
+}
+func (r Tile) FlipXY() *Tile {
+	return &Tile{ID: r.ID, Data: r.Data.FlipXY(), Top: r.Bottom, Bottom: r.Top, Left: r.Right, Right: r.Left}
+}
+func (r Tile) Rotate() *Tile {
+	return &Tile{ID: r.ID, Data: r.Data.Rotate(), Right: r.Top, Bottom: r.Right, Left: r.Bottom, Top: r.Left}
+}
 
 func (r Tile) GetTop() []byte    { return r.Data[0] }
 func (r Tile) GetBottom() []byte { return r.Data[len(r.Data)-1] }
@@ -188,6 +219,64 @@ func (r Tiles) Score() int {
 
 	return result
 }
+func (r Tiles) GetTopLeft() *Tile {
+	for _, tile := range r {
+		if tile.Top == nil && tile.Left == nil {
+			return tile
+		}
+	}
+	panic("no tile")
+}
+
+func (r Board) Print() {
+	for _, row := range r.Data {
+		fmt.Print(string(row))
+		fmt.Println()
+	}
+}
+func (r *Board) Set(x, y int, tile *Tile) {
+	yOffset := y * (TileSize - 2)
+	xOffset := x * (TileSize - 2)
+
+	for i, col := range tile.Data[1 : TileSize-1] {
+		for j, ch := range col[1 : TileSize-1] {
+			r.Data[i+yOffset][j+xOffset] = ch
+		}
+	}
+}
+
+func (r Board) CountMonsters() int {
+	var result int
+	monsterWidth := len(r.Monster[0])
+	monsterHeight := len(r.Monster)
+
+	dataWidth := len(r.Data[0])
+	dataHeight := len(r.Data)
+
+	for y := 0; y < dataHeight-monsterHeight; y++ {
+		for x := 0; x <= dataWidth-monsterWidth; x++ {
+			if r.matches(x, y) {
+				result++
+			}
+		}
+	}
+
+	return result
+}
+
+func (r Board) matches(x int, y int) bool {
+	for yy, row := range r.Monster {
+		for xx, char := range row {
+			if char != '#' {
+				continue
+			}
+			if r.Data[y+yy][x+xx] != '#' {
+				return false
+			}
+		}
+	}
+	return true
+}
 
 func ParseTile(lines []string) *Tile {
 	var id int
@@ -210,14 +299,74 @@ func part1() int {
 	}
 
 	tiles.MatchAll()
-
 	return tiles.Score()
 }
-func part2() int {
 
-	return 0
+func part2() int {
+	tilesData := strings.Split(readInput(), "\n\n")
+	tiles := make(Tiles, len(tilesData))
+	for i, x := range tilesData {
+		tiles[i] = ParseTile(strings.Split(x, "\n"))
+	}
+	tiles.MatchAll()
+	gridSize := int(math.Sqrt(float64(len(tiles))))
+	if gridSize*gridSize != len(tiles) {
+		panic("opsie")
+	}
+	board := createBoard(gridSize)
+	start := tiles.GetTopLeft()
+	x, y := 0, 0
+	for start != nil {
+		x = 0
+		current := start
+		for current != nil {
+			board.Set(x, y, current)
+			current = current.Right
+			x++
+		}
+		start = start.Bottom
+		y++
+	}
+	r0 := board.Data
+	r1 := r0.Rotate()
+	r2 := r1.Rotate()
+	r3 := r2.Rotate()
+	rotations := []Grid{r0, r1, r2, r3}
+	for _, rotation := range rotations {
+		options := []Grid{rotation, rotation.FlipX(), rotation.FlipY(), rotation.FlipXY()}
+		for _, option := range options {
+			board.Data = option
+			if monsters := board.CountMonsters(); monsters != 0 {
+				return board.Data.Count('#') - monsters*board.Monster.Count('#')
+			}
+		}
+	}
+
+	panic(":(")
 }
 
+func createBoard(size int) Board {
+	data := make([][]byte, size*(TileSize-2))
+	for i := range data {
+		data[i] = make([]byte, size*(TileSize-2))
+	}
+	return Board{Data: data, Size: size, Monster: createMonster()}
+}
+func createMonster() Grid {
+	b, err := ioutil.ReadFile("20/monster.txt")
+	if err != nil {
+		panic(err)
+	}
+	lines := strings.Split(string(b), "\n")
+	result := make(Grid, len(lines))
+	for i, line := range lines {
+		if line == "" {
+			continue
+		}
+		result[i] = []byte(line)
+	}
+	return result
+}
 func readInput() string {
 	b, err := ioutil.ReadFile("20/input.txt")
 	if err != nil {
