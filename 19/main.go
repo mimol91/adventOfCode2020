@@ -127,7 +127,6 @@ func part2() int {
 	part31 := fmt.Sprintf("(%s)", strings.Join(rules.Rules[31].Elements.Values(), "|"))
 	part42 := fmt.Sprintf("(%s)", strings.Join(rules.Rules[42].Elements.Values(), "|"))
 
-	// Rule 8 -> one or more times rule 42
 	rule8String := fmt.Sprintf("(%s)+", part42)
 
 
