@@ -3,12 +3,13 @@ package main
 import (
 	"fmt"
 	"io/ioutil"
+	"sort"
 	"strings"
 )
 
 func main() {
-	fmt.Printf("Part1 %d\n", part1())
-	//fmt.Printf("Part2 %d\n", part2())
+	//fmt.Printf("Part1 %d\n", part1())
+	fmt.Printf("Part2 %s\n", part2())
 }
 
 type Food struct {
@@ -39,6 +40,20 @@ func (m AllergensMap) solve() {
 		}
 	}
 
+}
+
+func (m AllergensMap) GetAllergens() []string {
+	result := make([]string, len(m))
+	keys := make([]string, 0, len(m))
+	for key := range m {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	for i, key := range keys {
+		result[i] = m[key][0]
+	}
+
+	return result
 }
 
 func (r FoodList) AsMap() AllergensMap {
@@ -78,6 +93,17 @@ func part1() int {
 	return foodList.CountNoAllergens(allergensMap)
 }
 
+func part2() string {
+	text := readInput()
+	foodList := parse(text)
+	allergensMap := foodList.AsMap()
+	allergensMap.solve()
+
+	allergens := allergensMap.GetAllergens()
+
+	return strings.Join(allergens, ",")
+}
+
 func parse(text string) FoodList {
 	text = strings.Replace(text, "(", "", -1)
 	text = strings.Replace(text, ")", "", -1)
@@ -91,11 +117,6 @@ func parse(text string) FoodList {
 		}
 	}
 	return result
-}
-
-func part2() int {
-
-	return 0
 }
 
 func intersection(a, b []string) []string {
