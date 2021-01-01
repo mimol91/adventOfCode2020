@@ -9,36 +9,29 @@ import (
 	"strings"
 )
 
+type MinMax [2]int
+type Store map[int]*list.Element
+
+const (
+	maxCups  = 1000000
+	maxMoves = 10000000
+)
+
 func main() {
 	fmt.Printf("Part1 %d\n", part1())
-	//fmt.Printf("Part2 %d\n", part2())
+	fmt.Printf("Part2 %d\n", part2()) //112	//389125467
 }
 
-type MinMax [2]int
-
 func part1() int {
-	cups, minMax := parse(readInput())
-
+	store := make(Store, maxCups)
+	cups, minMax := parse(readInput(), store)
 	cur := cups.Front()
+
 	for i := 0; i < 100; i++ {
-		cur = play(cups, minMax, cur)
-		printList(cups)
+		cur = play(cups, minMax, cur, store)
 	}
 
 	return score(cups)
-}
-
-func printList(cups *list.List) {
-	nums := make([]int, cups.Len())
-	cur := cups.Front()
-	var i int
-	for cur != nil {
-		nums[i] = cur.Value.(int)
-		cur = cur.Next()
-		i++
-	}
-
-	fmt.Println(nums)
 }
 
 func score(cups *list.List) int {
@@ -71,7 +64,7 @@ func score(cups *list.List) int {
 	return atoi(score)
 }
 
-func play(cups *list.List, minMax MinMax, cur *list.Element) *list.Element {
+func play(cups *list.List, minMax MinMax, cur *list.Element, store Store) *list.Element {
 	next1 := getNext(cups, cur)
 	next2 := getNext(cups, next1)
 	next3 := getNext(cups, next2)
@@ -82,8 +75,8 @@ func play(cups *list.List, minMax MinMax, cur *list.Element) *list.Element {
 		next3.Value.(int): {},
 	}
 
-	destination := getDestination(cups, cur.Value.(int)-1, minMax, removed)
-	fmt.Println(destination.Value)
+	destination := getDestination(cups, cur.Value.(int)-1, minMax, removed, store)
+
 	cups.MoveAfter(next3, destination)
 	cups.MoveAfter(next2, destination)
 	cups.MoveAfter(next1, destination)
@@ -99,31 +92,42 @@ func getNext(cups *list.List, cur *list.Element) *list.Element {
 	return cups.Front()
 }
 
-func getDestination(l *list.List, target int, minMax MinMax, removed map[int]struct{}) *list.Element {
-	cur := l.Front()
+func getDestination(l *list.List, target int, minMax MinMax, removed map[int]struct{}, store Store) *list.Element {
 	if target < minMax[0] {
-		return getDestination(l, minMax[1], minMax, removed)
+		return getDestination(l, minMax[1], minMax, removed, store)
 	}
-
 	if _, ok := removed[target]; ok {
-		return getDestination(l, target-1, minMax, removed)
+		return getDestination(l, target-1, minMax, removed, store)
 	}
-
-	for cur != nil {
-		val := cur.Value.(int)
-		if val == target {
-			return cur
-		}
-		cur = cur.Next()
-	}
-
-	panic("not found")
+	return store[target]
 }
 func part2() int {
+	store := make(Store, maxCups)
 
-	return 0
+	cups, minMax := parse(readInput(), store)
+	for i := minMax[1] + 1; i <= maxCups; i++ {
+		el := cups.PushBack(i)
+		store[i] = el
+	}
+	minMax[1] = maxCups
+	cur := cups.Front()
+
+	for i := 0; i < maxMoves; i++ {
+		cur = play(cups, minMax, cur, store)
+	}
+
+	return score2(store)
 }
-func parse(text string) (*list.List, MinMax) {
+func score2(store Store) int {
+	one := store[1]
+
+	score := one.Next().Value.(int)
+	score *= one.Next().Next().Value.(int)
+
+	return score
+}
+
+func parse(text string, store Store) (*list.List, MinMax) {
 	l := list.New()
 	lowestVal := math.MaxInt32
 	maxVal := math.MinInt32
@@ -131,7 +135,8 @@ func parse(text string) (*list.List, MinMax) {
 		val := atoi(v)
 		lowestVal = min(lowestVal, val)
 		maxVal = max(maxVal, val)
-		l.PushBack(val)
+		el := l.PushBack(val)
+		store[val] = el
 	}
 	return l, MinMax{lowestVal, maxVal}
 }
