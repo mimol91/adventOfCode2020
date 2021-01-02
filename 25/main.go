@@ -22,9 +22,9 @@ func (r *Code) CalculateLoop() {
 	}
 	r.Loop = i
 }
+
 func main() {
 	fmt.Printf("Part1 %d\n", part1())
-	//fmt.Printf("Part2 %d\n", part2())
 }
 
 func part1() int {
@@ -64,10 +64,6 @@ func getEncryptionKey(card Code, door Code) int {
 		return cardResult
 	}
 	panic("OPSIE")
-}
-func part2() int {
-
-	return 0
 }
 func atoi(val string) int {
 	if res, err := strconv.Atoi(val); err != nil {
