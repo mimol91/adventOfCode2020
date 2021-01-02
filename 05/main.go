@@ -53,11 +53,11 @@ func (b Board) String() string {
 func (b *Board) Process() {
 	b.Column.Process(map[rune]func(){
 		'L': b.Column.Range.Low,
-		'R': b.Column.Range.High,
+		'X': b.Column.Range.High,
 	})
 	b.Row.Process(map[rune]func(){
 		'F': b.Row.Range.Low,
-		'B': b.Row.Range.High,
+		'Z': b.Row.Range.High,
 	})
 }
 

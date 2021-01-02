@@ -32,7 +32,7 @@ func (r *Waypoint) turnLeft(times int) {
 }
 func (r *Waypoint) Execute(action Action) {
 	switch action.Name {
-	case 'R':
+	case 'X':
 		r.turnRight(action.Val / 90)
 	case 'L':
 		r.turnLeft(action.Val / 90)
@@ -58,7 +58,7 @@ func (r *Ship) Execute(action Action) {
 		r.East -= action.Val
 	case 'L':
 		r.turnLeft(action.Val / 90)
-	case 'R':
+	case 'X':
 		r.turnRight(action.Val / 90)
 	case 'F':
 		r.forward(action.Val)
